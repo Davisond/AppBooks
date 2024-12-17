@@ -5,14 +5,11 @@ class Index {
     // Método para pegar todos os livros
     public function getBooks(){
         $url = 'http://localhost/api/books';
-        
+               
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
-
-        var_dump($ch);
         
         $response = curl_exec($ch);
-
         curl_close($ch);
         
         $books = json_decode($response, true);
@@ -24,16 +21,17 @@ class Index {
     public function createBook($title, $author, $review){
         $url = 'http://localhost/api/books/';
         $data = array('title' => $title, 'author' => $author, 'review' => $review);
-        $dataString = http_build_query($data);
+        $dataString = json_encode($data); 
         $ch = curl_init($url); 
         
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type:application/json"]);    
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);    
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
 
         $response = curl_exec($ch); 
         curl_close($ch); 
+        return $response;
     }
 
     // Método para deletar um livro
@@ -50,8 +48,9 @@ class Index {
     // Método para atualizar um livro
     public function updateBook($id, $title, $author, $review){
         $url = 'http://localhost/api/books/' . $id;
+
         $data = array('title' => $title, 'author' => $author, 'review' => $review);
-        $dataString = http_build_query($data); 
+        $dataString = json_encode($data); 
         $ch = curl_init(); 
         curl_setopt($ch, CURLOPT_URL, $url); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
@@ -70,7 +69,6 @@ $index = new Index();
 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    var_dump($_POST);
     if (isset($_POST['create'])) {
         $title = $_POST['title'];
         $author = $_POST['author'];
@@ -115,11 +113,13 @@ $books = $index->getBooks();
 <!-- Exibindo a lista de livros -->
 <ul>
     <?php
-
     if ($books) {
         foreach ($books as $book) {
-            
-            echo "<li>Id: " . $book['id'] . ", Title: " . $book['title'] . ", Author: " . $book['author'] . ", Review: " . $book['review'] . "</li>";
+            if ($book) {
+                echo "<li>Id: {$book['id']}, Title: {$book['title']}, Author: {$book['author']}, Review: {$book['review']}</li>";
+            } else {
+                echo '<li>Book not found</li>';
+            }
         }
     } else {
         echo '<li>No books found</li>';
