@@ -1,6 +1,25 @@
 <?php
+require_once 'vendor/autoload.php';
+use Dompdf\Dompdf;
+use Dompdf\Options;
+$dompdf = new Dompdf();
+
 
 class Index {
+
+    public function findByTitle($title){
+        $books = $this->getBooks();
+        
+        if ($books){
+            foreach ($books as $book){
+               if ($book['title'] === $title){
+                return $book;
+               }
+            }
+        }
+        return null;
+    }
+
 
     // Método para pegar todos os livros
     public function getBooks(){
@@ -67,6 +86,15 @@ class Index {
 
 $index = new Index();
 
+    if(isset($_POST['find_by_title'])){
+        $title = $_POST['find_title'];
+        $book = $index->findByTitle($title);
+        if ($book){
+            $id = $book['id'];
+            echo "<p>Id: {$book['id']}, Title: {$book['title']}, Author: {$book['author']}, Review: {$book['review']}</p>";
+        }
+    }
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['create'])) {
@@ -92,11 +120,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $index->updateBook($id, $title, $author, $review);
         echo "<p>Edited successfully!</p>";
     }
+
+    if(isset($_POST['generate_pdf'])){
+        $dompdf = new Dompdf();
+        
+        $url = 'http://localhost/api/books/';
+        $ch = curl_init($url);
+        curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        $reviews = json_decode($response, true);
+        $html = '<h1>Book Reviews</h1>';
+        $books = $index->getBooks();
+            $html .= '<ul>';
+            foreach ($books as $book){
+                    
+                    $html .= "<strong>Title:</strong> {$book['title']}<br>";
+                    $html .= "<strong>Review:</strong> {$book['review']}</li><br><hr>";
+            }
+            $dompdf = new Dompdf();
+            $dompdf->load_html($html);
+            $dompdf->setPaper('A4','landscape');
+            $dompdf->render();
+            $dompdf->stream("reviews.pdf");
+            
+            file_put_contents("reviews.pdf", $dompdf->output());
+            echo "Arquivo salvo na pasta do projeto!";
+        
+    }
 }
-
-
 $books = $index->getBooks();
-
 ?>
 
 <!DOCTYPE html>
@@ -159,6 +211,19 @@ $books = $index->getBooks();
     <label for="edit_review">Review: </label>
     <textarea name="edit_review"></textarea><br>
     <button type="submit" name="edit">Edit</button>
+</form>
+
+<h2>gind a book</h2>
+<form action="index.php" method='POST'>
+<input type="text" name="find_title" required><br>
+<button type="submit" name="find_by_title">Find</button>
+
+</form>
+
+
+<h3>generate PDF</h3>
+<form method="POST" action="index.php">
+    <button type="submit" name="generate_pdf">Generate PDF</button>
 </form>
 
 </body>
